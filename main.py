@@ -1,4 +1,15 @@
-from datetime import datetime
+from flask import Flask
 
-with open('test.txt', 'a+', encoding='utf-8') as file:
-    file.write(datetime.today().strftime('%Y-%m-%d-%H-%M-%S') + '\n')
+app = Flask(__name__)
+
+
+@app.route('/')
+def hello_world():
+    from datetime import datetime
+    print(datetime.now())
+
+    return 'Hello World!'
+
+
+if __name__ == '__main__':
+    app.run()
