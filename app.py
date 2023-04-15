@@ -7,12 +7,10 @@ import hashids as hashids
 from bs4 import BeautifulSoup
 import requests as requests
 import openai
-from dotenv import load_dotenv
 from pydub import AudioSegment
 from gcloud import storage
 from oauth2client.service_account import ServiceAccountCredentials
 
-load_dotenv()
 openai.api_key = os.getenv("OPENAI_KEY")
 
 
