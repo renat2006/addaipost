@@ -215,4 +215,4 @@ data = {
     "postDescription": f'Статья от нейросети на тему: "{th_without}"',
     "postAuthor": "HealthAI"
 }
-r = requests.post('http://127.0.0.1:5000/createpost', data=data)
+r = requests.post('https://bellbone.ru/createpost', data=data)
