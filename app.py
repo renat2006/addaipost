@@ -28,7 +28,7 @@ def createHash(text):
 
 
 def createPostcontentName():
-    prompt = f"Придумай тему для поста в блоге про здоровый образ жизни"
+    prompt = f"Придумай необычную тему для поста"
 
     print(prompt)
     messages = [{"role": "system", "content": "Ты автор блога про здоровый образ жизни"},
@@ -190,10 +190,11 @@ def createPostcontentText(theme):
 
 
 theme = createPostcontentName()
+time.sleep(21)
 th_without = str(theme).replace('"', '').replace('«', '').replace('»', '')
 
 text_with_tags = str(createPostcontentText(theme)).replace('\n', '')
-
+time.sleep(21)
 cleantext = BeautifulSoup(text_with_tags, "lxml").text
 file_name = createAudio(th_without, cleantext)
 audio_url = loadDataToGoogle(file_name)
@@ -215,4 +216,4 @@ data = {
     "postDescription": f'Статья от нейросети на тему: "{th_without}"',
     "postAuthor": "HealthAI"
 }
-r = requests.post('https://bellbone.ru/createpost', data=data)
+r = requests.post('http://127.0.0.1:5000/createpost', data=data)
