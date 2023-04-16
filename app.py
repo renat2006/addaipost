@@ -12,6 +12,8 @@ from pydub import AudioSegment
 from gcloud import storage
 from oauth2client.service_account import ServiceAccountCredentials
 
+from googletrans import Translator, constants
+
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_KEY")
 
@@ -31,16 +33,20 @@ def createPostcontentName():
     prompt = f"Придумай необычную тему для поста"
 
     print(prompt)
-    messages = [{"role": "system", "content": "Ты автор блога про здоровый образ жизни"},
+    messages = [{"role": "system", "content": "Ты креативный автор блога про здоровый образ жизни"},
                 {"role": "user", "content": prompt}]
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
 
     )
-    theme = response.choices[0].message.content
-    print(theme)
-    return theme
+
+    theme_ = response.choices[0].message.content
+    print(theme_)
+    if '.' in theme_:
+        theme_ = theme_.split('.')[0]
+    print(theme_)
+    return theme_
 
 
 def createAudio(name, content_text):
@@ -140,13 +146,25 @@ def generateImage(prompt):
         size="1024x1024",
         response_format="url"
     )
+    f_name = createHash(prompt)
+    url = response['data'][0]['url']
+    img_data = requests.get(url).content
+    with open(f"{f_name}.jpg", "wb") as f:
+        f.write(img_data)
+    i_url = loadDataToGoogle(f"{f_name}.jpg")
 
-    # Print the URL of the generated image
-    return response["data"][0]["url"]
+    return i_url
+
+
+def trans(text):
+    translator = Translator()
+    translation = translator.translate(text, dest="en")
+    print(translation.text)
+    return str(translation.text)
 
 
 def generateImagePrompt(text):
-    prompt = f'Напиши prompt для DALL-E на английском, чтобы он сгенерировал картинку по описанию: {text}'
+    prompt = f'Переведи '
 
     print(prompt)
     messages = [{"role": "system", "content": "Ты генератор prompt для DALL-E"},
@@ -167,16 +185,16 @@ def addImages(content):
     images = soup.find_all('img')
 
     for img in images:
-        img['src'] = generateImage(generateImagePrompt(str(img['alt'])))
+        img['src'] = generateImage(trans(str(img['alt'])))
         time.sleep(21)
     return str(soup)
 
 
 def createPostcontentText(theme):
-    prompt = f"Напиши текст для блога на тему {theme}. При написании текста используй html-разметку. Добавь картинки, но в поле src поставь $"
+    prompt = f"Напиши текст для блога на тему {theme}. При написании текста используй html-разметку. Добавь картинки, но в поле src поставь $.  "
 
     print(prompt)
-    messages = [{"role": "system", "content": "Ты автор блога про здоровый образ жизни"},
+    messages = [{"role": "system", "content": "Ты креативный автор блога про здоровый образ жизни"},
                 {"role": "user", "content": prompt}]
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -189,31 +207,34 @@ def createPostcontentText(theme):
     return content
 
 
-theme = createPostcontentName()
-time.sleep(21)
-th_without = str(theme).replace('"', '').replace('«', '').replace('»', '')
+for i in range(5):
+    theme = createPostcontentName()
+    time.sleep(21)
+    th_without = str(theme).replace('"', '').replace('«', '').replace('»', '')
 
-text_with_tags = str(createPostcontentText(theme)).replace('\n', '')
-time.sleep(21)
-cleantext = BeautifulSoup(text_with_tags, "lxml").text
-file_name = createAudio(th_without, cleantext)
-audio_url = loadDataToGoogle(file_name)
-text_with_tags = addImages(text_with_tags)
+    text_with_tags = str(createPostcontentText(theme)).replace('\n', '')
+    time.sleep(21)
+    cleantext = BeautifulSoup(text_with_tags, "lxml").text
+    file_name = createAudio(th_without, cleantext)
+    audio_url = loadDataToGoogle(file_name)
+    text_with_tags = addImages(text_with_tags)
 
-post_text = f"""<figure>
-    <figcaption>Статья в аудиоформате</figcaption>
-    <audio
-        controls
-        src="{audio_url}">
-    </audio>
-</figure>""" + text_with_tags
+    post_text = f"""<figure>
+        <figcaption>Статья в аудиоформате</figcaption>
+        <audio
+            controls
+            src="{audio_url}">
+        </audio>
+    </figure>""" + text_with_tags
 
-data = {
-    'from_cron_task': '1',
-    "postTitle": th_without,
-    "postTags": "Здоровое питание,ЗОЖ,СтатьяОтНейросети",
-    "postContent": post_text,
-    "postDescription": f'Статья от нейросети на тему: "{th_without}"',
-    "postAuthor": "HealthAI"
-}
-r = requests.post('https://bellbone.ru/createpost', data=data)
+    data = {
+        'from_cron_task': '1',
+        "postTitle": th_without,
+        "postTags": "Здоровое питание,ЗОЖ,СтатьяОтНейросети",
+        "postContent": post_text,
+        "postDescription": f'Статья от нейросети на тему: "{th_without}"',
+        "postAuthor": "HealthAI"
+    }
+    r = requests.post('http://127.0.0.1:5000/createpost', data=data)
+    print("ready")
+    time.sleep(100)
